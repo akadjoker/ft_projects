@@ -1,88 +1,66 @@
-#ifndef FT_MALLOC_INTERNAL_H
-#define FT_MALLOC_INTERNAL_H
-
-#include <sys/mman.h>
-#include <unistd.h>
-#include <pthread.h>
-#include <stddef.h>
-#include <fcntl.h>
-#include "libft.h"
+#ifndef INTERNAL_H
+#define INTERNAL_H
+# include <fcntl.h>
+# include <unistd.h>
+# include <sys/stat.h>
+# include <sys/types.h>
+# include <stdlib.h>
+# include <stdbool.h>
+# include <stddef.h>
+# include <limits.h>
+# include <sys/mman.h>
+# include <pthread.h>
 
 
 #define EXPORT __attribute__((visibility("default")))
 
-// Debug mode
-#ifdef DEBUG
-#define DEBUG_FD open("/tmp/malloc.log", O_WRONLY | O_CREAT | O_APPEND, 0644)
-#endif
+extern pthread_mutex_t	g_malloc_mutex;
 
-// Tamanhos e limites
-#define TINY_MAX_SIZE 128
-#define SMALL_MAX_SIZE 1024
-#define ALIGNMENT 16
-#define META_SIZE (sizeof(t_block))
 
-// Estados dos blocos
-#define BLOCK_FREE 0
-#define BLOCK_USED 1
+# define ZONE_SMALL		(1 << 10)
+# define ZONE_TINY		(1 << 6)
+# define MALLOC_ZONE	(1 << 7)
+# define MASK_0XFFF		(1 << 12) - 1
 
-// Tipos de zona
-#define ZONE_TINY 0
-#define ZONE_SMALL 1
-#define ZONE_LARGE 2
-
-// Estrutura para um bloco de memória
-typedef struct s_block
+typedef	enum
 {
-    size_t size;          // Tamanho do bloco (sem metadata)
-    int state;            // BLOCK_FREE ou BLOCK_USED
-    struct s_block *next; // Próximo bloco na zona
-    struct s_block *prev; // Bloco anterior na zona
+	MALLOC_TINY,
+	MALLOC_SMALL,
+	MALLOC_LARGE
+}	t_malloc_type;
+
+
+
+typedef struct			s_block
+{
+	struct s_block		*next;
+	struct s_block		*prev;
+	size_t				size;
+	size_t				for_align_purpose;
 } t_block;
 
-// Estrutura para uma zona de memória
-typedef struct s_zone
+typedef struct			s_page
 {
-    size_t size;         // Tamanho total da zona
-    int type;            // TINY, SMALL ou LARGE
-    struct s_zone *next; // Proxima zona
-    t_block *blocks;     // Primeiro bloco na zona
-} t_zone;
+	struct s_page		*next;
+	struct s_page		*prev;
+	t_block				*alloc;
+	t_block				*free;
+}						t_page;
 
-typedef struct s_malloc_stats
+
+typedef struct			s_malloc_pages
 {
-    size_t total_allocated;
-    size_t total_freed;
-    size_t number_of_allocs;
-    size_t number_of_frees;
-    size_t largest_alloc;
-    size_t smallest_alloc;
-} t_malloc_stats;
-
-typedef struct s_header
-{
-    t_zone *g_zones;
-    t_malloc_stats g_malloc_stats;
-    size_t TINY_ZONE_SIZE;
-    size_t SMALL_ZONE_SIZE;
-    int initialized;
-    int g_malloc_debug;
-} t_header;
-
-# define RED    "\x1B[31m"
-# define GREEN  "\x1B[32m"
-# define YELLOW "\x1B[33m"
-# define BLUE   "\x1B[34m"
-# define RESET  "\x1B[0m"
+	t_page				*tiny;
+	t_page				*small;
+	t_block				*large;
+}						t_malloc_pages;
+extern t_malloc_pages	g_malloc_pages;
 
 
-
-void mallock_init(void);
-t_zone *create_zone(size_t total_size, int type);
-t_block *find_free_block(t_zone *zone, size_t size);
-void split_block(t_block *block, size_t size);
-int is_valid_pointer(void *ptr);
-size_t align_size(size_t size);
+size_t					ft_align(size_t size, size_t mask);
+bool					is_valid_block(const void *ptr, size_t size);
+bool					malloc_error(const int err, const char *str);
+size_t					page_size(size_t type);
 
 
 #endif

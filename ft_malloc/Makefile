@@ -1,21 +1,19 @@
 # Variáveis do Makefile
 CC = gcc
 HOSTTYPE := $(shell uname -m)_$(shell uname -s)
-CFLAGS = -Wall -Wextra -Werror -fPIC -fvisibility=hidden# a ideia é so ter as funcoes visiveis que sao EXPORT
+CFLAGS = -g  -fPIC -fvisibility=hidden# a ideia é so ter as funcoes visiveis que sao EXPORT
 
 
-INCLUDES = -Iinclude -Ilibft/include
+INCLUDES = -Iinclude 
 LDFLAGS = -shared
 OBJDIR = obj
 SRC_DIR = src
 
 # Nomes das bibliotecas
 DYNAMIC_NAME = libft_malloc_$(HOSTTYPE).so
-STATIC_NAME = libft_malloc.a
 LINK_NAME = libft_malloc.so
 
-# Diretórios e arquivos
-LIBFT = libft/libft.a
+
 SRC = $(wildcard $(SRC_DIR)/*.c)
 OBJ = $(SRC:$(SRC_DIR)/%.c=$(OBJDIR)/%.o)
 
@@ -27,7 +25,7 @@ $(info Object files: $(OBJ))
 $(info =====================)
 
 # Regra principal
-all: mk_objdir  $(STATIC_NAME) $(DYNAMIC_NAME)
+all: mk_objdir $(DYNAMIC_NAME)
 
 # Criar diretório de objetos
 mk_objdir:
@@ -40,35 +38,25 @@ $(OBJDIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
 # Criar a biblioteca dinâmica
-$(DYNAMIC_NAME): $(LIBFT) $(OBJ)
+$(DYNAMIC_NAME):  $(OBJ)
 	@echo "\033[1;32mCreating shared library $(DYNAMIC_NAME)...\033[0m"
-	$(CC) $(LDFLAGS) -o $(DYNAMIC_NAME) $(OBJ) $(LIBFT)
+	$(CC) $(LDFLAGS) -o $(DYNAMIC_NAME) $(OBJ) $(LIBFT) -lpthread
 	ln -sf $(DYNAMIC_NAME) $(LINK_NAME)
 	@echo "\033[1;36m$(DYNAMIC_NAME) and $(LINK_NAME) are built!\033[0m"
 
-# Criar a biblioteca estática
-$(STATIC_NAME): $(OBJ)
-	@echo "\033[1;32mCreating static library $(STATIC_NAME)...\033[0m"
-	@ar rcs $(STATIC_NAME) $(OBJ)
-	@echo "\033[1;36m$(STATIC_NAME) is built!\033[0m"
 
-# Compilar a libft
-$(LIBFT):
-	@make -C libft
 
 # Limpeza dos objetos
 clean:
 	@echo "Cleaning object files..."
 	@rm -rf $(OBJDIR)
-	@make -C libft clean
 	@echo "\033[1;33mObject files removed.\033[0m"
 
 # Limpeza completa
 fclean: clean
 	@echo "Removing shared and static libraries..."
-	@rm -f $(DYNAMIC_NAME) $(STATIC_NAME) $(LINK_NAME)
-	@make -C libft fclean
-	@echo "\033[1;33m$(DYNAMIC_NAME), $(STATIC_NAME), and $(LINK_NAME) removed.\033[0m"
+	@rm -f $(DYNAMIC_NAME)  $(LINK_NAME)
+	@echo "\033[1;33m$(DYNAMIC_NAME) and $(LINK_NAME) removed.\033[0m"
 
 
 re: fclean all
@@ -76,10 +64,6 @@ re: fclean all
 ns:
 	@echo "\033[1;32mListing static symbols...\033[0m"
 	nm libft_malloc.so
-
-na:
-	@echo "\033[1;32mListing shared symbols...\033[0m"
-	nm libft_malloc.a
 
 
 # Verificar estrutura do projeto

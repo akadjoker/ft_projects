@@ -1,17 +1,13 @@
+
+#include "ft_malloc.h"
 #include "internal.h"
 
-extern pthread_mutex_t g_malloc_mutex;
-extern t_header g_header;
-
-
-EXPORT void *calloc(size_t nmemb, size_t size)
+EXPORT void	*calloc(size_t count, size_t size)
 {
-  
-    size_t total_size = nmemb * size;
-    void *ptr = malloc(total_size);
-    if (ptr) 
+	void			*ptr;
+	if ((ptr = malloc(count * size)))
     {
-        ft_bzero(ptr,total_size);
+		ft_memset(ptr, 0, count * size);
     }
-    return ptr;
+	return (ptr);
 }

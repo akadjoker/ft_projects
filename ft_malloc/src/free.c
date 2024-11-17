@@ -1,36 +1,81 @@
 
-#include "internal.h"
 
-extern pthread_mutex_t g_malloc_mutex;
-extern t_header g_header;
+#include "ft_malloc.h"
+#include "internal.h"
+#include "libft.h"
+
+static void free_unused_mem(const int malloc_size, t_page *mem)
+{
+	size_t const zone_sizes[2] = {ZONE_TINY, ZONE_SMALL};
+
+	if (mem->prev)
+		mem->prev->next = mem->next;
+	else
+	{
+		if (malloc_size)
+			g_malloc_pages.tiny = mem->next;
+		else
+			g_malloc_pages.small = mem->next;
+	}
+	if (mem->next)
+		mem->next->prev = mem->prev;
+	munmap(mem, MALLOC_ZONE * zone_sizes[malloc_size]);
+}
+
+static inline void free_not_large(t_block *block,
+								  const int malloc_size, t_page *mem)
+{
+	if (block->prev)
+		block->prev->next = block->next;
+	else
+		mem->alloc = block->next;
+	if (block->next)
+		block->next->prev = block->prev;
+	block->prev = NULL;
+	block->next = mem->free;
+	if (mem->free)
+		mem->free->prev = block;
+	mem->free = block;
+	if (!mem->alloc)
+		free_unused_mem(malloc_size, mem);
+}
+
+static inline void free_large(t_block *block)
+{
+	const size_t msize = ft_align(block->size + sizeof(t_block), MASK_0XFFF);
+
+	if (block->prev)
+		block->prev->next = block->next;
+	else
+		g_malloc_pages.large = block->next;
+	if (block->next)
+		block->next->prev = block->prev;
+	munmap(block, msize);
+}
+
+static void free_block(t_block *block)
+{
+	const int type = page_size(block->size);
+	size_t const zone_sizes[2] = {ZONE_TINY, ZONE_SMALL};
+	t_page *mem;
+
+	if (type == MALLOC_LARGE)
+		free_large(block);
+	else
+	{
+		mem = (!type) ? g_malloc_pages.tiny : g_malloc_pages.small;
+		while (!((void *)block < (void *)mem + MALLOC_ZONE *
+												   zone_sizes[type] &&
+				 (void *)block > (void *)mem))
+			mem = mem->next;
+		free_not_large(block, type, mem);
+	}
+}
 
 EXPORT void free(void *ptr)
 {
-    if (!ptr)
-        return;
-
-    pthread_mutex_lock(&g_malloc_mutex);
-
-    t_block *block = (t_block *)((char *)ptr - META_SIZE);
-    block->state = BLOCK_FREE;
-
-    //cola a direita
-    if (block->next && block->next->state == BLOCK_FREE)
-    {
-        block->size += block->next->size + META_SIZE;
-        block->next = block->next->next;
-        if (block->next)
-            block->next->prev = block;
-    }
-
-    //    cola a esquerda
-    if (block->prev && block->prev->state == BLOCK_FREE)
-    {
-        block->prev->size += block->size + META_SIZE;
-        block->prev->next = block->next;
-        if (block->next)
-            block->next->prev = block->prev;
-    }
-
-    pthread_mutex_unlock(&g_malloc_mutex);
+	pthread_mutex_lock(&g_malloc_mutex);
+	if (ptr && is_valid_block(ptr, ZONE_SMALL + 1))
+		free_block(ptr - sizeof(t_block));
+	pthread_mutex_unlock(&g_malloc_mutex);
 }

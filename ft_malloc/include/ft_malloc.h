@@ -14,8 +14,6 @@
 
  void show_alloc_mem(void);
 
-#define ft_malloc malloc
-#define ft_free free
-#define ft_realloc realloc
+
 
 #endif

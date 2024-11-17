@@ -1,0 +1,232 @@
+#include "malloc.h"
+#include <sys/mman.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <stddef.h>
+
+t_header header;
+
+void init_zones()
+{
+    printf("init zone tiny %ld\n", TINY_ZONE_SIZE);
+    printf("init zone small %ld\n", SMALL_ZONE_SIZE);
+    printf("init zone large %d\n", LARGE_ZONE_SIZE);
+    
+    header.tinys  = 1;
+    header.smalls = 1;
+    header.larges = 1;
+
+    header.tiny  = map_memory(header.tinys * sizeof(t_zone));
+    header.small = map_memory(header.smalls * sizeof(t_zone));
+    header.large = map_memory(header.larges * sizeof(t_zone));
+    for (word i = 0; i < header.tinys; i++)
+    {
+       create_zone(i, &header.tiny[i],0,1, TINY_ZONE_SIZE);
+    }
+    for (word i = 0; i < header.smalls; i++)
+    {
+        create_zone(i,&header.small[i],1,1, SMALL_ZONE_SIZE);
+    }
+    for (word i = 0; i < header.larges; i++)
+    {
+        create_zone(i,&header.large[i],1,0,LARGE_ZONE_SIZE);
+    }
+
+  
+    header.total_memory = 0;
+    header.total_zones  = 0;
+}
+
+
+
+void free_zones()
+{
+    for (word i = 0; i < header.tinys; i++)
+    {
+        destroy_zone(&header.tiny[i]);
+    }
+    for (word i = 0; i < header.smalls; i++)
+    {
+        destroy_zone(&header.small[i]);
+    }
+    for (word i = 0; i < header.larges; i++)
+    {
+        destroy_zone(&header.large[i]);
+    }
+    unmap_memory(header.tiny,  header.tinys  * sizeof(t_zone));
+    unmap_memory(header.small, header.smalls * sizeof(t_zone));
+    unmap_memory(header.large, header.larges * sizeof(t_zone));
+}
+
+
+t_block* create_block()
+{
+    t_block* block = map_memory(sizeof(t_block));
+    block->size = 0;
+    block->magic = MAGIC_NUMBER;
+    block->zone = 0;
+    block->index = 0;
+    block->free = 1;
+    
+    return block;
+}
+
+
+void free_block(t_block *block)
+{
+    if (!block)
+        return;
+    unmap_memory(block, sizeof(t_block));
+}
+
+void create_zone(word id, t_zone *zone, word capacity,byte type,byte fill)
+{
+    zone->capacity = capacity;
+    zone->used = 0;
+    zone->id = id;
+    zone->type = type;
+    zone->blocks = map_memory(capacity * sizeof(t_block*));
+    if (fill)
+    {
+        for (word i = 0; i < capacity; i++)
+        {
+            zone->blocks[i] = create_block();
+            zone->blocks[i]->zone  = id;
+            zone->blocks[i]->index = i;
+        }
+    }
+}
+
+void destroy_zone(t_zone *zone)
+{
+    for (word i = 0; i < zone->capacity; i++)
+    {
+        unmap_memory(zone->blocks[i], sizeof(t_block));
+    }
+    unmap_memory(zone->blocks, zone->capacity * sizeof(t_block*));
+}
+
+void *map_memory(word size)
+{
+    void *mem = mmap(NULL, size, 
+                    PROT_READ | PROT_WRITE,
+                    MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    
+    if (mem == MAP_FAILED)
+        return NULL;
+    
+    return mem;
+
+}
+
+void unmap_memory(void *ptr, word size)
+{
+    munmap(ptr, size);
+}
+
+
+
+
+t_block* get_block(word size )
+{
+    if (size<= TINY_MAX)
+    {
+        for (word i = 0; i < header.tinys; i++)
+        {
+            if (header.tiny[i].used < header.tiny[i].capacity)
+            {
+                t_block * block = header.tiny[i].blocks[header.tiny[i].used++];
+                block->size = size;
+                return block;
+            }
+        }
+    }
+    if (size <= SMALL_MAX)
+    {
+        for (word i = 0; i < header.smalls; i++)
+        {
+            if (header.small[i].used < header.small[i].capacity)
+            {
+                t_block * block = header.small[i].blocks[header.small[i].used++];
+                block->size = size;
+                return block;
+            }
+        }
+    } 
+
+    for (word i = 0; i < header.larges; i++)
+    {
+        if (header.large[i].used < header.large[i].capacity)
+        {
+                
+                t_block* block = create_block();
+                block->size  = size;
+                block->zone  = header.large[i].id;
+                block->index = i;
+                block->free  = 0;
+                header.large[i].blocks[header.large[i].used] = block;
+                header.large[i].used++;
+                return block;
+        }
+    }
+
+    return NULL;
+}
+
+
+void* block_to_ptr(t_block *block)
+{
+    return ((char*)block + sizeof(t_block));
+}
+
+t_block* ptr_to_block(void *ptr)
+{
+    return ((t_block*)((char*)ptr - sizeof(t_block)));
+}
+
+void *ft_malloc(word size)
+{
+    if (size == 0)
+        return NULL;
+
+    t_block *block = get_block(size);
+    if (block)
+    {
+        
+        return block_to_ptr(block);
+    }
+    return NULL;
+}
+
+void ft_free(void *ptr)
+{
+    t_block *block = ptr_to_block(ptr);
+    if (block->magic != MAGIC_NUMBER)
+    {
+        printf("Invalid block\n");
+        return ;
+    }
+    word size = block->size;
+
+    if (size<= TINY_MAX)
+    {
+        t_zone *zone = &header.tiny[block->zone];
+        
+        zone->blocks[block->index]->free = 1; 
+        zone->used--;
+        
+        return ;
+    }
+
+    if (size <= SMALL_MAX)
+    {
+        t_zone *zone = &header.small[block->zone];
+        zone->blocks[block->index]->free = 1;
+        zone->used--;
+        return ;
+    }
+
+    t_zone *zone = &header.large[block->zone];
+    free_block(zone->blocks[block->index]);
+    zone->used--;
+}

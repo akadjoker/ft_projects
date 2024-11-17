@@ -4,7 +4,6 @@ TEST_PROGRAM = teste
 CC = gcc
 CFLAGS = -Wall  -I../include 
 
-LIB = ../libft_malloc.a   ../libft/libft.a
 
 TEST_SRC = teste.c
 
@@ -20,11 +19,14 @@ run: $(TEST_PROGRAM)
 	./$(TEST_PROGRAM)
 
 gdb:
-	gdb --args env LD_PRELOAD=./libft_malloc.so ./$(TEST_PROGRAM)
+	gdb --args ./$(TEST_PROGRAM)
 
 val:
-	valgrind --leak-check=full env LD_PRELOAD=./libft_malloc.so ./$(TEST_PROGRAM)
+	valgrind --leak-check=full ./$(TEST_PROGRAM)
 
+re:
+	make clean
+	make
 
 clean:
 	rm -f $(TEST_PROGRAM)
