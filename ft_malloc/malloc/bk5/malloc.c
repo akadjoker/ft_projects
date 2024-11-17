@@ -51,10 +51,9 @@ void free_block_zone(t_block *block)
     {
         if (zone->id == block->zone)
         {
-            t_block *nblock = zone->blocks[block->index];
-            nblock->free = 1;
-            zone->memory -= nblock->size;
-            nblock->size = 0;
+            block->free = 1;
+            zone->memory -= block->size;
+            block->size = 0;
             zone->used--;
             return;
         }
@@ -68,11 +67,7 @@ void destroy_zone(t_zone *zone)
     if (!zone)
         return;
     if (zone->blocks)
-    {
-        for (word i = 0; i < zone->capacity; i++)
-            free_block(zone->blocks[i]);
         unmap_memory(zone->blocks, zone->capacity * sizeof(t_block *));
-    }
     unmap_memory(zone, sizeof(t_zone));
 }
 
@@ -121,9 +116,7 @@ void free_zones(void)
         t_zone *next = current->next;
         if (current->blocks)
         {
-            for (word i = 0; i < current->capacity; i++)
-                free_block(current->blocks[i]);
-           unmap_memory(current->blocks, current->capacity * sizeof(t_block*));
+            unmap_memory(current->blocks, current->capacity * sizeof(t_block));
         }
         unmap_memory(current, sizeof(t_zone));
         current = next;
@@ -157,7 +150,7 @@ t_zone *create_zone(word id, word capacity, byte type)
     if (!zone)
         return NULL;
 
-    zone->blocks = map_memory(capacity * sizeof(t_block*));
+    zone->blocks = map_memory(capacity * sizeof(t_block));
     if (!zone->blocks)
     {
         unmap_memory(zone, sizeof(t_zone));
@@ -174,8 +167,7 @@ t_zone *create_zone(word id, word capacity, byte type)
     // Initialize all blocks in the zone
     for (word i = 0; i < capacity; i++)
     {
-        zone->blocks[i] = create_block(0, id, i);
-        t_block *block = zone->blocks[i];
+        t_block *block = (t_block *)((char *)zone->blocks + i * sizeof(t_block));
         block->size = 0;
         block->magic = MAGIC_NUMBER;
         block->zone = id;
@@ -200,12 +192,13 @@ static t_block *get_block(word size)
     {
         for (word i = 0; i < zone->capacity; i++)
         {
-            t_block *block = zone->blocks[i];
+            t_block *block = (t_block *)((char *)zone->blocks + i * sizeof(t_block));
             if (block->free)
             {
                 block->magic = MAGIC_NUMBER;
                 block->size = size;
                 block->free = 0;
+                block->index = i;
                 zone->used++;
                 zone->memory += size;
                 result = block;

@@ -18,15 +18,15 @@ int main()
     init_zones();
 
         
-// for (word i = 0; i < 10; i++)
-// {
-//     char* str = StrDup("Luis Miguel Rosa dos Santos\n");
-//     ft_putstr(str);
-//     ft_free(str);
-// }
+for (word i = 0; i < 10; i++)
+{
+    char* str = StrDup("Luis Miguel Rosa dos Santos\n");
+    ft_putstr(str);
+    ft_free(str);
+}
 
 
-    #define STRESS_TEST_COUNT 5
+    #define STRESS_TEST_COUNT 5000
     void *pointers[STRESS_TEST_COUNT];
 
     for (int i = 0; i < STRESS_TEST_COUNT; i++)
@@ -40,15 +40,15 @@ int main()
         }
         memset(pointers[i], i % 256, size);
     }
-  // print_zones();
+   print_zones();
 
     for (int i = 0; i < STRESS_TEST_COUNT; i++)
     {
         if (pointers[i])
         {
 
-        }
            ft_free(pointers[i]);
+        }
     }
 
 

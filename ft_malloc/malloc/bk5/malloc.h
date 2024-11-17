@@ -43,7 +43,7 @@ typedef struct s_block
 
 typedef struct s_zone
 {
-    t_block **blocks; // array para os blocos
+    t_block *blocks; // array para os blocos
     byte type ;    // 0 = tiny, 1 = small , 2 = large
     word capacity; // Capacidade máxima (em número de blocos)
     word used;     // Blocos usados
