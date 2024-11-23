@@ -10,7 +10,14 @@ add_subdirectory(main_memento)
 add_subdirectory(main_observer)
 add_subdirectory(main_singleton)
 add_subdirectory(main_state_machine)
+add_subdirectory(main_thread_safe)
+add_subdirectory(main_thread_safe_queue)
+add_subdirectory(main_thread)
+add_subdirectory(main_worker_pool)
+add_subdirectory(main_persistent_worker)
 
 
+add_subdirectory(main_client)
+add_subdirectory(main_server)
 
 

@@ -1,6 +1,7 @@
-#include "server.hpp"
-#include "thread_safe_iostream.hpp"
 #include <string>
+#include "server.hpp"
+#include "client.hpp"
+#include "thread_safe_iostream.hpp"
 
 int main() {
     Server server;

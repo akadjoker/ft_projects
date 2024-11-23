@@ -1,5 +1,5 @@
-#include "memento.hpp"
 #include <iostream>
+#include "memento.hpp"
 
 class TestClass : public Memento
 {

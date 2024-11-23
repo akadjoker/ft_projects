@@ -10,6 +10,7 @@ class Observer
 public:
     void subscribe(const TEvent &event, const std::function<void()> &lambda)
     {
+        
         subscribers[event].push_back(lambda);
     }
 

@@ -138,7 +138,7 @@ private:
             #if defined(VERBOSE)
                 INFO("Delete object %p", obj);
             #endif
-            delete obj; // Liberta a memória alocada para cada objeto
+            delete obj; // Liberta a memória alocada para cada objeto ui bicho RAW POINTERS :D
         }
         m_pool.clear(); 
     }

@@ -41,8 +41,8 @@ target_include_directories(libftpp PUBLIC include include/std src)
 if(CMAKE_BUILD_TYPE MATCHES Debug)
 
 if (UNIX)
-    target_compile_options(libftpp PRIVATE -fsanitize=address -fsanitize=undefined -fsanitize=leak -g  -D_DEBUG )
-    target_link_options(libftpp PRIVATE -fsanitize=address -fsanitize=undefined -fsanitize=leak -g  -D_DEBUG ) 
+    target_compile_options(libftpp PRIVATE  -g  -D_DEBUG )
+    target_link_options(libftpp PRIVATE  -g  -D_DEBUG ) 
 endif()
 
 elseif(CMAKE_BUILD_TYPE MATCHES Release)

@@ -30,7 +30,7 @@ public:
     void load( Memento::Snapshot &snapshot);
 
 protected:
-    // Métodos que devem ser implementados pelas classes herdadas
+    
     virtual void _saveToSnapshot(Memento::Snapshot &snapshot) = 0;
     virtual void _loadFromSnapshot( Memento::Snapshot &snapshot) = 0;
 };
